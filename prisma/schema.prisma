@@ -1,0 +1,225 @@
+// 2DOT — Database Schema (Part 1: Foundation)
+//
+// This schema is intentionally broader than what Part 1 renders in the UI.
+// It exists now so later parts (auth, admin, products, reviews, marketplace
+// links) can be built against a stable, relational structure instead of
+// bolting tables on ad hoc. Nothing here wires up checkout, payments, carts,
+// or orders — 2DOT is a discovery site that hands customers off to external
+// marketplaces.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  CUSTOMER
+  ADMIN
+}
+
+// ---------------------------------------------------------------------------
+// Users — Part 2: real authentication (email + hashed password, sessions).
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  passwordHash  String   // bcrypt hash — never a plain-text password
+  role          Role     @default(CUSTOMER)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  reviews             Review[]
+  passwordResetTokens PasswordResetToken[]
+
+  @@map("users")
+}
+
+// One-time, short-lived tokens for the "forgot password" flow. The token
+// itself is never stored in plain text — only its hash — so a leaked
+// database dump can't be replayed to reset accounts.
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+// ---------------------------------------------------------------------------
+// Catalog
+// ---------------------------------------------------------------------------
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String
+  slug      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  products  Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String    @db.Text
+  price       Decimal   @db.Decimal(10, 2)
+  published   Boolean   @default(false)
+  archived    Boolean   @default(false) // soft-deleted / retired — distinct from an unpublished draft
+
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id])
+
+  images      ProductImage[]
+  variants    ProductVariant[]
+  reviews     Review[]
+  marketplaces ProductMarketplace[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([published])
+  @@index([archived])
+  @@index([categoryId])
+  @@map("products")
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  url       String
+  altText   String?
+  position  Int      @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+  @@map("product_images")
+}
+
+// A variant is a purchasable size/color combination with its own stock count.
+model ProductVariant {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  size      String
+  color     String
+  sku       String?  @unique
+  stock     Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([productId, size, color])
+  @@index([productId])
+  @@map("product_variants")
+}
+
+// ---------------------------------------------------------------------------
+// Marketplaces — where a product can actually be purchased.
+// 2DOT never processes payment itself; it links out.
+// ---------------------------------------------------------------------------
+
+model Marketplace {
+  id        String   @id @default(cuid())
+  name      String   @unique // e.g. "Amazon", "Myntra", "Official Store"
+  slug      String   @unique
+  baseUrl   String?  // optional canonical domain, for display/branding
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products  ProductMarketplace[]
+
+  @@map("marketplaces")
+}
+
+// Join table: one product can be sold on many marketplaces, each with its
+// own external purchase URL. This is the piece that must be editable from
+// the admin dashboard rather than hard-coded into components.
+model ProductMarketplace {
+  id            String      @id @default(cuid())
+  productId     String
+  product       Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  marketplaceId String
+  marketplace   Marketplace @relation(fields: [marketplaceId], references: [id], onDelete: Cascade)
+
+  externalUrl   String
+  isActive      Boolean     @default(true)
+
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([productId, marketplaceId])
+  @@index([productId])
+  @@map("product_marketplaces")
+}
+
+// ---------------------------------------------------------------------------
+// Reviews (Part 1: schema only, no UI logic wired up)
+// ---------------------------------------------------------------------------
+
+model Review {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+
+  authorName String  // fallback display name if userId is not set
+  rating     Int      // 1-5
+  title      String?
+  body       String   @db.Text
+  published  Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+  @@map("reviews")
+}
+
+// ---------------------------------------------------------------------------
+// Site settings — a single-row table of global, admin-editable values.
+// Header/footer/social links must read from here, never be hard-coded.
+// ---------------------------------------------------------------------------
+
+model SiteSettings {
+  id               String   @id @default(cuid())
+
+  whatsappUrl      String?
+  instagramUrl     String?
+  facebookUrl      String?
+  youtubeUrl       String?
+  contactEmail     String?
+  contactPhone     String?
+
+  footerTagline    String?  // e.g. "FISH THE FIT"
+
+  updatedAt        DateTime @updatedAt
+
+  @@map("site_settings")
+}
