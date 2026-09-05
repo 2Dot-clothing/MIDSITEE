@@ -12,7 +12,11 @@ export const passwordSchema = z
 export const registerSchema = z
   .object({
     name: z.string().trim().min(1, "Name is required.").max(100),
-    email: z.string().trim().toLowerCase().email("Enter a valid email address."),
+    email: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .email("Enter a valid email address."),
     password: passwordSchema,
     confirmPassword: z.string(),
   })
@@ -49,9 +53,6 @@ export const accountUpdateSchema = z.object({
   name: z.string().trim().min(1, "Name is required.").max(100),
 });
 
-// Core product fields only — image upload, variants, and marketplace links
-// are placeholder UI in the admin dashboard for now (see /admin/products/new)
-// and are validated/wired up once those parts are built.
 export const productFormSchema = z.object({
   name: z.string().trim().min(1, "Product name is required.").max(150),
   description: z.string().trim().min(1, "Description is required.").max(5000),
@@ -62,6 +63,34 @@ export const productFormSchema = z.object({
     .optional()
     .transform((value) => (value ? value : undefined)),
   published: z.coerce.boolean().optional().default(false),
+  imageUrl: z
+    .string()
+    .trim()
+    .max(500)
+    .refine(
+      (value) =>
+        value === "" || value.startsWith("/") || /^https?:\/\//.test(value),
+      "Enter a valid image path or URL.",
+    ),
+  variantSize: z.string().trim().max(30).optional(),
+  variantColor: z.string().trim().max(50).optional(),
+  variantStock: z.coerce.number().int().min(0).optional(),
+  marketplaceName: z.string().trim().max(100).optional(),
+  marketplaceUrl: z
+    .string()
+    .trim()
+    .max(1000)
+    .refine(
+      (value) => value === "" || /^https?:\/\//.test(value),
+      "Enter a valid marketplace URL.",
+    )
+    .optional(),
 });
 
 export type ProductFormInput = z.infer<typeof productFormSchema>;
+
+export const reviewFormSchema = z.object({
+  rating: z.coerce.number().int().min(1).max(5),
+  title: z.string().trim().max(150).optional(),
+  body: z.string().trim().min(1, "Review is required.").max(3000),
+});

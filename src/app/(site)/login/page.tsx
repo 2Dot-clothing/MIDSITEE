@@ -3,7 +3,7 @@
 import { Suspense, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { signIn } from "next-auth/react";
+import { getSession, signIn } from "next-auth/react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Input } from "@/components/ui/Input";
@@ -51,14 +51,19 @@ function LoginForm() {
       return;
     }
 
-    router.push(callbackUrl);
+    const session = await getSession();
+    router.push(session?.user?.role === "ADMIN" ? "/admin" : callbackUrl);
     router.refresh();
   }
 
   return (
     <PageContainer className="flex flex-col items-center gap-10">
       <SectionHeading title="Log In" align="center" />
-      <form onSubmit={handleSubmit} noValidate className="flex w-full max-w-sm flex-col gap-5">
+      <form
+        onSubmit={handleSubmit}
+        noValidate
+        className="flex w-full max-w-sm flex-col gap-5"
+      >
         <Input
           label="Email"
           name="email"
@@ -99,7 +104,10 @@ function LoginForm() {
       </form>
       <p className="text-sm text-slate">
         Don&apos;t have an account?{" "}
-        <Link href="/register" className="text-ink underline underline-offset-4">
+        <Link
+          href="/register"
+          className="text-ink underline underline-offset-4"
+        >
           Register
         </Link>
       </p>

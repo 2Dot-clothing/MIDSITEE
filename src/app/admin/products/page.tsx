@@ -30,32 +30,40 @@ const STATUS_TABS = [
 type StatusFilter = (typeof STATUS_TABS)[number]["value"];
 
 interface AdminProductsPageProps {
-  searchParams: { q?: string; status?: string; page?: string };
+  searchParams: Promise<{ q?: string; status?: string; page?: string }>;
 }
 
 function stockStatus(totalStock: number, hasVariants: boolean) {
   if (!hasVariants) return { label: "No Stock Data", tone: "outline" as const };
-  if (totalStock === 0) return { label: "Out of Stock", tone: "outline" as const };
-  if (totalStock <= LOW_STOCK_THRESHOLD) return { label: "Low Stock", tone: "outline" as const };
+  if (totalStock === 0)
+    return { label: "Out of Stock", tone: "outline" as const };
+  if (totalStock <= LOW_STOCK_THRESHOLD)
+    return { label: "Low Stock", tone: "outline" as const };
   return { label: "In Stock", tone: "default" as const };
 }
 
 function buildHref(params: { q?: string; status?: string; page?: number }) {
   const search = new URLSearchParams();
   if (params.q) search.set("q", params.q);
-  if (params.status && params.status !== "all") search.set("status", params.status);
+  if (params.status && params.status !== "all")
+    search.set("status", params.status);
   if (params.page && params.page > 1) search.set("page", String(params.page));
   const qs = search.toString();
   return qs ? `/admin/products?${qs}` : "/admin/products";
 }
 
 // admin/layout.tsx already enforces the ADMIN session for this route.
-export default async function AdminProductsPage({ searchParams }: AdminProductsPageProps) {
-  const q = searchParams.q?.trim() ?? "";
-  const status: StatusFilter = STATUS_TABS.some((tab) => tab.value === searchParams.status)
-    ? (searchParams.status as StatusFilter)
+export default async function AdminProductsPage({
+  searchParams,
+}: AdminProductsPageProps) {
+  const resolvedSearchParams = await searchParams;
+  const q = resolvedSearchParams.q?.trim() ?? "";
+  const status: StatusFilter = STATUS_TABS.some(
+    (tab) => tab.value === resolvedSearchParams.status,
+  )
+    ? (resolvedSearchParams.status as StatusFilter)
     : "all";
-  const page = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
+  const page = Math.max(1, parseInt(resolvedSearchParams.page ?? "1", 10) || 1);
 
   const where: Prisma.ProductWhereInput = {};
   if (status === "archived") {
@@ -83,7 +91,11 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
         published: true,
         archived: true,
         category: { select: { name: true } },
-        images: { orderBy: { position: "asc" }, take: 1, select: { url: true, altText: true } },
+        images: {
+          orderBy: { position: "asc" },
+          take: 1,
+          select: { url: true, altText: true },
+        },
         variants: { select: { stock: true } },
         _count: { select: { reviews: true } },
       },
@@ -95,7 +107,10 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-wrap items-end justify-between gap-6">
-        <SectionHeading title="Products" description={`${total} product${total === 1 ? "" : "s"}`} />
+        <SectionHeading
+          title="Products"
+          description={`${total} product${total === 1 ? "" : "s"}`}
+        />
         <Link href="/admin/products/new">
           <Button size="sm">New Product</Button>
         </Link>
@@ -109,7 +124,9 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
               href={buildHref({ q, status: tab.value })}
               className={cn(
                 "px-4 py-2 text-xs uppercase tracking-widest2",
-                status === tab.value ? "bg-ink text-paper" : "border border-hairline text-ink hover:bg-mist"
+                status === tab.value
+                  ? "bg-ink text-paper"
+                  : "border border-hairline text-ink hover:bg-mist",
               )}
             >
               {tab.label}
@@ -118,7 +135,9 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
         </nav>
 
         <form method="get" className="flex items-center gap-2">
-          {status !== "all" && <input type="hidden" name="status" value={status} />}
+          {status !== "all" && (
+            <input type="hidden" name="status" value={status} />
+          )}
           <input
             type="search"
             name="q"
@@ -134,7 +153,9 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
 
       {products.length === 0 ? (
         <EmptyState
-          title={q || status !== "all" ? "No matching products" : "No products yet"}
+          title={
+            q || status !== "all" ? "No matching products" : "No products yet"
+          }
           description={
             q || status !== "all"
               ? "Try a different search term or filter."
@@ -158,31 +179,52 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
             </thead>
             <tbody>
               {products.map((product) => {
-                const totalStock = product.variants.reduce((sum, v) => sum + v.stock, 0);
-                const stock = stockStatus(totalStock, product.variants.length > 0);
+                const totalStock = product.variants.reduce(
+                  (sum, v) => sum + v.stock,
+                  0,
+                );
+                const stock = stockStatus(
+                  totalStock,
+                  product.variants.length > 0,
+                );
                 const image = product.images[0];
 
                 return (
-                  <tr key={product.id} className="border-b border-hairline last:border-0 align-top">
+                  <tr
+                    key={product.id}
+                    className="border-b border-hairline last:border-0 align-top"
+                  >
                     <td className="p-4">
                       <div className="flex h-12 w-12 items-center justify-center border border-hairline bg-mist text-[10px] uppercase text-slate">
                         {image ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={image.url} alt={image.altText ?? product.name} className="h-full w-full object-cover" />
+                          <img
+                            src={image.url}
+                            alt={image.altText ?? product.name}
+                            className="h-full w-full object-cover"
+                          />
                         ) : (
                           "No image"
                         )}
                       </div>
                     </td>
                     <td className="p-4 font-medium">{product.name}</td>
-                    <td className="p-4 text-slate">{product.category?.name ?? "—"}</td>
-                    <td className="p-4">{formatPrice(product.price.toString())}</td>
+                    <td className="p-4 text-slate">
+                      {product.category?.name ?? "—"}
+                    </td>
+                    <td className="p-4">
+                      {formatPrice(product.price.toString())}
+                    </td>
                     <td className="p-4">
                       <Badge tone={stock.tone}>{stock.label}</Badge>
                     </td>
                     <td className="p-4">
                       <Badge tone={product.published ? "inverted" : "outline"}>
-                        {product.archived ? "Archived" : product.published ? "Published" : "Draft"}
+                        {product.archived
+                          ? "Archived"
+                          : product.published
+                            ? "Published"
+                            : "Draft"}
                       </Badge>
                     </td>
                     <td className="p-4 text-slate">{product._count.reviews}</td>
@@ -203,7 +245,13 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
                           </button>
                         </form>
                         {!product.archived && (
-                          <form action={setProductPublished.bind(null, product.id, !product.published)}>
+                          <form
+                            action={setProductPublished.bind(
+                              null,
+                              product.id,
+                              !product.published,
+                            )}
+                          >
                             <button
                               type="submit"
                               className="text-xs uppercase tracking-widest2 text-slate underline underline-offset-4 hover:text-ink"
@@ -212,7 +260,13 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
                             </button>
                           </form>
                         )}
-                        <form action={setProductArchived.bind(null, product.id, !product.archived)}>
+                        <form
+                          action={setProductArchived.bind(
+                            null,
+                            product.id,
+                            !product.archived,
+                          )}
+                        >
                           <button
                             type="submit"
                             className="text-xs uppercase tracking-widest2 text-slate underline underline-offset-4 hover:text-ink"
@@ -231,9 +285,15 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
       )}
 
       {totalPages > 1 && (
-        <nav className="flex items-center justify-between text-xs uppercase tracking-widest2" aria-label="Pagination">
+        <nav
+          className="flex items-center justify-between text-xs uppercase tracking-widest2"
+          aria-label="Pagination"
+        >
           {page > 1 ? (
-            <Link href={buildHref({ q, status, page: page - 1 })} className="underline underline-offset-4">
+            <Link
+              href={buildHref({ q, status, page: page - 1 })}
+              className="underline underline-offset-4"
+            >
               Previous
             </Link>
           ) : (
@@ -243,7 +303,10 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
             Page {page} of {totalPages}
           </span>
           {page < totalPages ? (
-            <Link href={buildHref({ q, status, page: page + 1 })} className="underline underline-offset-4">
+            <Link
+              href={buildHref({ q, status, page: page + 1 })}
+              className="underline underline-offset-4"
+            >
               Next
             </Link>
           ) : (

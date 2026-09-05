@@ -15,11 +15,11 @@ export function Logo({
   return (
     <span className={cn("inline-flex items-center gap-2", className)}>
       <Image
-        src="/assets/logo.svg"
+        src="/assets/logo.png"
         alt="2DOT"
         width={28}
         height={28}
-        className={cn("h-6 w-auto sm:h-7", invert && "invert")}
+        className={cn("h-6 w-auto sm:h-7 bg-black ", invert && "invert")}
         priority
       />
       {showWordmark && (
