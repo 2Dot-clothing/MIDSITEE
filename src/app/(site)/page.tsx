@@ -121,7 +121,7 @@ export default async function HomePage() {
                   {product.image ? (
                     <Image
                       src={product.image}
-                      alt={"alt" in product ? product.alt : product.name}
+                      alt={product.name}
                       fill
                       sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
                       className="object-contain transition-transform duration-500 group-hover:scale-105"

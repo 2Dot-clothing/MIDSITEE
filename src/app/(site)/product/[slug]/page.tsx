@@ -38,6 +38,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const product = await prisma.product.findFirst({
     where: { slug, published: true, archived: false },
     select: {
+      id: true,
       name: true,
       description: true,
       price: true,
@@ -60,7 +61,13 @@ export default async function ProductPage({ params }: ProductPageProps) {
       reviews: {
         where: { published: true },
         orderBy: { createdAt: "desc" },
-        select: { id: true, authorName: true, rating: true, title: true, body: true },
+        select: {
+          id: true,
+          authorName: true,
+          rating: true,
+          title: true,
+          body: true,
+        },
       },
     },
   });
@@ -133,40 +140,88 @@ export default async function ProductPage({ params }: ProductPageProps) {
       <section className="lg:col-span-2 border-t border-hairline pt-10">
         <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr]">
           <div className="flex flex-col gap-4">
-            <h2 className="font-display text-3xl uppercase tracking-tightest">Write a Review</h2>
+            <h2 className="font-display text-3xl uppercase tracking-tightest">
+              Write a Review
+            </h2>
             {session?.user ? (
-              <form action={submitReview} className="flex max-w-md flex-col gap-4">
+              <form
+                action={submitReview}
+                className="flex max-w-md flex-col gap-4"
+              >
                 <label className="flex flex-col gap-2 text-xs uppercase tracking-widest2 text-slate">
                   Rating
-                  <select name="rating" defaultValue="5" className="border border-hairline bg-cloud px-4 py-3 text-sm text-ink">
-                    {[5, 4, 3, 2, 1].map((rating) => <option key={rating} value={rating}>{rating} / 5</option>)}
+                  <select
+                    name="rating"
+                    defaultValue="5"
+                    className="border border-hairline bg-cloud px-4 py-3 text-sm text-ink"
+                  >
+                    {[5, 4, 3, 2, 1].map((rating) => (
+                      <option key={rating} value={rating}>
+                        {rating} / 5
+                      </option>
+                    ))}
                   </select>
                 </label>
                 <label className="flex flex-col gap-2 text-xs uppercase tracking-widest2 text-slate">
                   Title
-                  <input name="title" placeholder="Your headline" className="border border-hairline bg-cloud px-4 py-3 text-sm text-ink" />
+                  <input
+                    name="title"
+                    placeholder="Your headline"
+                    className="border border-hairline bg-cloud px-4 py-3 text-sm text-ink"
+                  />
                 </label>
                 <label className="flex flex-col gap-2 text-xs uppercase tracking-widest2 text-slate">
                   Review
-                  <textarea name="body" rows={5} required placeholder="What did you think?" className="border border-hairline bg-cloud px-4 py-3 text-sm text-ink" />
+                  <textarea
+                    name="body"
+                    rows={5}
+                    required
+                    placeholder="What did you think?"
+                    className="border border-hairline bg-cloud px-4 py-3 text-sm text-ink"
+                  />
                 </label>
-                <button type="submit" className="w-fit bg-ink px-6 py-3 text-xs uppercase tracking-widest2 text-paper">Submit Review</button>
+                <button
+                  type="submit"
+                  className="w-fit bg-ink px-6 py-3 text-xs uppercase tracking-widest2 text-paper"
+                >
+                  Submit Review
+                </button>
               </form>
             ) : (
               <p className="text-sm text-slate">
-                <Link href={`/login?callbackUrl=${encodeURIComponent(`/product/${slug}`)}`} className="text-ink underline underline-offset-4">Log in</Link> to review this product.
+                <Link
+                  href={`/login?callbackUrl=${encodeURIComponent(`/product/${slug}`)}`}
+                  className="text-ink underline underline-offset-4"
+                >
+                  Log in
+                </Link>{" "}
+                to review this product.
               </p>
             )}
           </div>
           <div className="flex flex-col gap-5">
-            <h2 className="font-display text-3xl uppercase tracking-tightest">Reviews ({product.reviews.length})</h2>
-            {product.reviews.length === 0 ? <p className="text-sm text-slate">Be the first to review this product.</p> : (
+            <h2 className="font-display text-3xl uppercase tracking-tightest">
+              Reviews ({product.reviews.length})
+            </h2>
+            {product.reviews.length === 0 ? (
+              <p className="text-sm text-slate">
+                Be the first to review this product.
+              </p>
+            ) : (
               <div className="flex flex-col divide-y divide-hairline border-y border-hairline">
                 {product.reviews.map((review) => (
                   <article key={review.id} className="flex flex-col gap-2 py-5">
-                    <p className="text-xs uppercase tracking-widest2 text-slate">{review.authorName} · {review.rating}/5</p>
-                    {review.title && <h3 className="font-display text-xl uppercase tracking-tightest">{review.title}</h3>}
-                    <p className="text-sm leading-relaxed text-slate">{review.body}</p>
+                    <p className="text-xs uppercase tracking-widest2 text-slate">
+                      {review.authorName} · {review.rating}/5
+                    </p>
+                    {review.title && (
+                      <h3 className="font-display text-xl uppercase tracking-tightest">
+                        {review.title}
+                      </h3>
+                    )}
+                    <p className="text-sm leading-relaxed text-slate">
+                      {review.body}
+                    </p>
                   </article>
                 ))}
               </div>
