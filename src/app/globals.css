@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-paper text-ink font-body antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display;
+  }
+
+  /* Visible focus ring everywhere — premium doesn't mean inaccessible. */
+  :focus-visible {
+    outline: 2px solid theme("colors.ink");
+    outline-offset: 3px;
+  }
+
+  ::selection {
+    background: theme("colors.ink");
+    color: theme("colors.paper");
+  }
+}
+
+@layer utilities {
+  /* Editorial numeral treatment for the brand's dot motif. Used sparingly —
+     see Hero and SectionHeading — never as a generic bullet. */
+  .dot {
+    @apply inline-block rounded-full bg-current;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

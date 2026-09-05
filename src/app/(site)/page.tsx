@@ -13,7 +13,7 @@ export default function HomePage() {
         <Container className="grid gap-12 py-20 sm:py-28 lg:grid-cols-[1.2fr_0.8fr] lg:items-end lg:gap-8">
           <div className="flex flex-col gap-8">
             <Image
-              src="/assets/logo.png"
+              src="/assets/logo.svg"
               alt=""
               width={56}
               height={56}
@@ -24,7 +24,12 @@ export default function HomePage() {
               Performance sportswear
             </p>
             <h1 className="font-display text-6xl uppercase leading-display tracking-tightest sm:text-8xl lg:text-[7.5rem]">
-              2<span className="dot mx-1 h-4 w-4 align-middle sm:h-6 sm:w-6 lg:h-8 lg:w-8" aria-hidden />DOT
+              2
+              <span
+                className="dot mx-1 h-4 w-4 align-middle sm:h-6 sm:w-6 lg:h-8 lg:w-8"
+                aria-hidden
+              />
+              DOT
             </h1>
             <p className="max-w-md text-sm leading-relaxed text-slate">
               Built for the run, the lift, and everything between. 2DOT is
