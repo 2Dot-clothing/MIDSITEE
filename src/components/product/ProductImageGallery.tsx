@@ -47,7 +47,8 @@ export function ProductImageGallery({
           const nearestIndex = images.reduce((bestIndex, _, index) => {
             const child = gallery.children[index] as HTMLElement;
             const bestChild = gallery.children[bestIndex] as HTMLElement;
-            return Math.abs(child.offsetLeft - gallery.scrollLeft) < Math.abs(bestChild.offsetLeft - gallery.scrollLeft)
+            return Math.abs(child.offsetLeft - gallery.scrollLeft) <
+              Math.abs(bestChild.offsetLeft - gallery.scrollLeft)
               ? index
               : bestIndex;
           }, 0);
@@ -108,7 +109,9 @@ export function ProductImageGallery({
               aria-pressed={activeIndex === index}
               onClick={() => selectImage(index)}
               className={`relative h-16 w-16 shrink-0 overflow-hidden border bg-white transition-opacity ${
-                activeIndex === index ? "border-ink" : "border-hairline opacity-60 hover:opacity-100"
+                activeIndex === index
+                  ? "border-ink"
+                  : "border-hairline opacity-60 hover:opacity-100"
               }`}
             >
               <Image

@@ -309,7 +309,8 @@ export async function createReview(productId: string, formData: FormData) {
 
   const parsed = reviewFormSchema.safeParse({
     rating: formData.get("rating"),
-    title: typeof formData.get("title") === "string" ? formData.get("title") : "",
+    title:
+      typeof formData.get("title") === "string" ? formData.get("title") : "",
     body: typeof formData.get("body") === "string" ? formData.get("body") : "",
   });
   if (!parsed.success) {
